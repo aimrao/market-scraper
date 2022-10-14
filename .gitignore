@@ -3,3 +3,6 @@ __pycache__/
 
 # Environments
 .env
+
+# Scraped data
+/data
