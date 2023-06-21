@@ -12,18 +12,11 @@ def roundTime(dt=None, dateDelta=datetime.timedelta(minutes=1)):
     ''' Rounds down time to nearest 5 mins '''
     return dt.replace(hour=0, minute=0, second=0) + (math.ceil((dt - dt.replace(hour=0, minute=0, second=0)) / dateDelta) * dateDelta) - dateDelta
 
-def parse_data(data, current_time, legend, trend):
+def parse_data(data, current_time, legend, trend, raw_data):
     ''' Filters stocks which has high=open or low=open '''
     current_time = roundTime(current_time, datetime.timedelta(minutes=5)).strftime("%H:%M")
     flag = 1
-    message = ''
-    match legend:
-        case 'NIFTY':
-            message += "Top {} of Nifty @{}\n".format(trend, current_time)
-        case 'BANKNIFTY':
-            message += "Top {} of BNF @{}\n".format(trend, current_time)
-        case 'FOSec':
-            message += "Top {} of FnO @{}\n".format(trend, current_time)
+    message = "Top {} of FnO @{}\n".format(trend, raw_data['FOSec']['timestamp'])
     message += "----------------------------\n"    
     for i in data.rows:
         if i[-1] == 'Yes':
@@ -47,12 +40,13 @@ def process_data(trend, data, timezone):
     else:
         check = 'high_price'
 
-    for legend in ['NIFTY', 'FOSec', 'BANKNIFTY']:
-        tb = PrettyTable()
-        tb.field_names = ['Stock', 'Open Price', 'High Price', 'Low Price', 'LTP', 'Prev Close', '% Change', 'Traded Quantity (in lacs)', 'open_price = {}'.format(check)]
-        rows = []
+    legend = 'FOSec'  # for legend in ['NIFTY', 'FOSec', 'BANKNIFTY']:
+    tb = PrettyTable()
+    tb.field_names = ['Stock', 'Open Price', 'High Price', 'Low Price', 'LTP', 'Prev Close', '% Change', 'Traded Quantity (in lacs)', 'open_price = {}'.format(check)]
+    rows = []
 
-        for stock in data[legend]['data']:    #stock.keys --> ['legends', 'NIFTY', 'BANKNIFTY', 'NIFTYNEXT50', 'SecGtr20', 'SecLwr20', 'FOSec', 'allSec']
+    for stock in data[legend]['data']:    #stock.keys --> ['legends', 'NIFTY', 'BANKNIFTY', 'NIFTYNEXT50', 'SecGtr20', 'SecLwr20', 'FOSec', 'allSec']
+        if stock['open_price'] == stock[check]:
             rows.append(
                             [
                                 stock['symbol'], 
@@ -66,13 +60,13 @@ def process_data(trend, data, timezone):
                                 ('Yes' if stock['open_price'] == stock[check] else "No")
                             ]
                         )
-        tb.add_rows(rows=rows)
-        f = open('{}/data/{}/{}_{}'.format(os.getcwd(), legend, datetime.datetime.now(timezone).strftime("%d-%m-%Y"), trend), 'a')
-        current_time = datetime.datetime.now(timezone)
-        f.write("Scrape time: {}\n".format(current_time.strftime("%H:%M")))
-        send_to_telegram(parse_data(tb, current_time, legend, trend))
-        f.write(str(tb) + '\n')
-        f.close()
+    tb.add_rows(rows=rows)
+    f = open('{}/data/{}/{}_{}'.format(os.getcwd(), legend, datetime.datetime.now(timezone).strftime("%d-%m-%Y"), trend), 'a')
+    current_time = datetime.datetime.now(timezone)
+    f.write("Scrape time: {}\n".format(current_time.strftime("%H:%M")))
+    send_to_telegram(parse_data(tb, current_time, legend, trend, data))
+    f.write(str(tb) + '\n')
+    f.close()
     
     return current_time
 
@@ -80,11 +74,10 @@ def process_data(trend, data, timezone):
 def scrape(scrape_interval, scrape_duration, timezone):
     ''' Scrapes top gainers/losers data from NSE Official Website '''
 
-    headers = {
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Accept-Language': 'en-US,en;q=0.9,hi;q=0.8'
-    }
+    headers = {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, '
+                            'like Gecko) '
+                            'Chrome/80.0.3987.149 Safari/537.36',
+            'accept-language': 'en,gu;q=0.9,hi;q=0.8', 'accept-encoding': 'gzip, deflate, br'}
 
     url = "https://www.nseindia.com/api/live-analysis-variations?index="
     
@@ -97,7 +90,7 @@ def scrape(scrape_interval, scrape_duration, timezone):
         for trend in ['gainers', 'loosers']:
             count = 0 
             while True:
-                response = requests.get(url+trend, headers=headers)
+                response = requests.get(url+trend, headers=headers, timeout=5)
                 if response.status_code != 200:
                     count += 1
                     if count < 6:
@@ -114,7 +107,7 @@ def scrape(scrape_interval, scrape_duration, timezone):
             print("Scraping {}...".format(trend))
             current_time = process_data(data=data, trend=trend, timezone=timezone)
             time.sleep(5)
-        
+        break
         print("Sleeping for {} minutes".format(scrape_interval))
         time.sleep(scrape_interval*60)
         
@@ -127,4 +120,4 @@ def scrape(scrape_interval, scrape_duration, timezone):
 india = timezone("Asia/Kolkata")
 
 # scrape_interval and scrape_duration ( in minutes ) e.g. scrape_interval=5, scrape_duration=60 means "scrape every 5 mins for 60 minutes" 
-scrape(scrape_interval=5, scrape_duration=90, timezone=india)       
+#scrape(scrape_interval=5, scrape_duration=90, timezone=india)       

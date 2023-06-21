@@ -1,4 +1,4 @@
-from telegram_bot import poll_telegram
+from telegram_poll import poll_telegram
 import time
 
 while True:
