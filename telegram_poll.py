@@ -1,5 +1,7 @@
 from telegram_bot import *
 from scrape import *
+from galaxy_battery_status import *
+from opstra import *
 
 def poll_telegram():
     api = os.environ.get('api')
@@ -11,6 +13,13 @@ def poll_telegram():
         last_message = message_data.get('text')
         if same_msg(message_data.get('message_id')):
             if last_message.lower()=='scrape':
+                send_to_telegram("ack")
                 scrape(scrape_interval=5, scrape_duration=1, timezone=india)
+            elif last_message.lower()=='battery':
+                send_to_telegram("ack")
+                send_to_telegram(check_battery_status())
+            elif last_message.lower()=='pnl':
+                send_to_telegram("ack")
+                send_to_telegram(str(pnl()))
     except Exception as e:
         print(e)
