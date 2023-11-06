@@ -80,7 +80,7 @@ def scrape(scrape_interval, scrape_duration, timezone):
                             'Chrome/80.0.3987.149 Safari/537.36',
             'accept-language': 'en,gu;q=0.9,hi;q=0.8', 'accept-encoding': 'gzip, deflate, br'}
 
-    url = "https://www.nseindia.com/api/live-analysis-variations?index="
+    url = "https://www.nseindia.com/api/live-analysiss-variations?index="
     
     current_time = datetime.datetime.now(timezone)
     end_time = current_time.timestamp() + scrape_duration*60
@@ -96,9 +96,13 @@ def scrape(scrape_interval, scrape_duration, timezone):
                     count += 1
                     if count < 6:
                         time.sleep(5)
-                    else:
+                    elif count<24:
                         time.sleep(20)
                         count += 3
+                    else:
+                        logger.error("Scraping failed.")
+                        send_to_telegram("Scraping failed.")
+                        return
                     logger.info("I am stuck in loop for {} seconds.".format(5*count))
                     continue
                 else:
