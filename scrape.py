@@ -6,6 +6,7 @@ import datetime
 from pytz import timezone
 from prettytable import PrettyTable
 from telegram_bot import send_to_telegram
+from logger import *
 
 def roundTime(dt=None, dateDelta=datetime.timedelta(minutes=1)):
     ''' Rounds down time to nearest 5 mins '''
@@ -84,7 +85,7 @@ def scrape(scrape_interval, scrape_duration, timezone):
     current_time = datetime.datetime.now(timezone)
     end_time = current_time.timestamp() + scrape_duration*60
 
-    print("Scraping started at: {}".format(current_time.strftime("%H:%M")))
+    logger.info("Scraping started at: {}".format(current_time.strftime("%H:%M")))
 
     while current_time.timestamp() < end_time:
         for trend in ['gainers', 'loosers']:
@@ -98,21 +99,21 @@ def scrape(scrape_interval, scrape_duration, timezone):
                     else:
                         time.sleep(20)
                         count += 3
-                    print("I am stuck in loop for {} seconds.".format(5*count))
+                    logger.info("I am stuck in loop for {} seconds.".format(5*count))
                     continue
                 else:
                     break
             
             data = json.loads(response.text)
-            print("Scraping {}...".format(trend))
+            logger.info("Scraping {}...".format(trend))
             current_time = process_data(data=data, trend=trend, timezone=timezone)
             time.sleep(5)
         break
-        print("Sleeping for {} minutes".format(scrape_interval))
+        logger.info("Sleeping for {} minutes".format(scrape_interval))
         time.sleep(scrape_interval*60)
         
 
-    print("Scraping finished at: {}".format(current_time.strftime("%H:%M")))
+    logger.info("Scraping finished at: {}".format(current_time.strftime("%H:%M")))
     
     return 0
 

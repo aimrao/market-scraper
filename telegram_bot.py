@@ -1,6 +1,7 @@
 import requests
 import os
 from dotenv import load_dotenv
+from logger import *
 
 load_dotenv()   # initializing env vars from .env file
     
@@ -13,9 +14,9 @@ def send_to_telegram(message):
     apiURL = f'https://api.telegram.org/bot{api}/sendMessage'
     try:
         response = requests.post(apiURL, json={'chat_id': chat_id, 'text': message})
-        print("Sending to telegram: {}".format(response.status_code))
+        logger.info("Sending to telegram: {}".format(response.status_code))
     except Exception as e:
-        print(e)
+        logger.exception(e)
 
 def same_msg(message_id):
     try:
